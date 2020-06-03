@@ -1,0 +1,441 @@
+# input: maker/model/<year : URL> and 
+# output: maker/model/years/price/{properties dictionary}
+
+def get_maker_model_year_price_properties(maker, model, year, price, model_year_url):
+
+    prop.clear()                           # clear the dictionary
+
+    technology = []
+
+    entertainment = []
+
+    tmp_dct = {}
+
+    i = 0    
+
+    r = requests.get(model_year_url)
+
+
+    # create soup3 object for the top level HTML page (to search recursively
+
+    # for makers, models and Links)
+
+    soup3 = soup( r.content, 'html.parser')  
+
+
+    # (1-2) find out MPG and HorsePower
+
+    mpg = False
+
+    hp = False
+
+    for p  in soup3.find('div', {"class" : "css-1wbw7cx epomrkc1"}).find_all('div', {"class" : "stars"}):
+
+
+        parent = str(p.find_parent('div').text).strip()
+
+        if  "Combined Fuel Economy" in   parent :
+
+            prop['MPG'] = p.text
+
+            mpg = True
+
+        elif  "Horsepower"  in   parent :
+
+            prop['HP'] = p.text
+
+            hp = True
+
+        else :
+
+            break
+
+    if mpg == False :
+
+        prop['MPG'] = "N/A"
+
+    if hp == False :
+
+          prop['HP'] = "N/A"
+
+
+
+    # (3-4) find out Expert Rating and Consumer rating
+
+    i = 0
+
+    for p in soup3.find_all('div', {"class":"css-x9skgx-NumericRating e149jidm1"}) :
+
+        i = i + 1
+
+        if i == 1 :
+
+            if  p.text :
+
+                value = p.text.replace('\xa0', '')
+
+                prop['Expert-Rating'] = value
+
+            else :
+
+                prop['Expert-Rating'] = "N/A"
+
+        elif (i == 2 ): 
+
+            if p.text :
+
+                value = p.text.replace('\xa0', '')
+
+                prop['Consumer-Rating'] =  value
+
+            else :
+
+                prop['Consumer-Rating'] =  "N/A"
+
+        else :
+
+            break
+
+
+    # (5) Avalon safety rating
+
+    safety = soup3.find('div', {"class":"css-b7zitt e1pswftg4"})
+
+    if safety :
+
+        prop['Safety-Rating'] = safety.contents[0]
+
+    else :
+
+        prop['Safety-Rating'] = "N/A"
+
+
+
+    # (6) Avalon Technology
+
+    for  p   in soup3.find('ul', {"class":"css-p619jy-StyledList-List"}).find_all('span', {"class" : "css-lml4x1-ListContent e1jmyeyl2"}) :
+
+
+        technology.append(p.text)
+
+
+    prop['Technology'] = technology
+
+
+
+    # (7) Avalon Entertainment: skip Technology
+
+    for  p   in   soup3.find_all('ul', {"class":"css-p619jy-StyledList-List"})[1] :
+
+        for e in  p.find_all('span',{"class" : "css-lml4x1-ListContent e1jmyeyl2"}):
+
+            entertainment.append(e.text)
+
+
+
+    prop['Entertainment'] = entertainment
+
+    L1 = ['Maker', 'Model', 'Year', 'New_Price', 'property']
+
+    L2 = [maker, model, year, price, prop]
+
+    tmp_dct = dict(zip(L1, L2))
+
+    print("tmp_dct; ", tmp_dct)
+
+    return  tmp_dct              # return prop dictionary ß Correct values
+
+
+
+
+# for each models/years get that model/year properties into model_final_dct_list[]
+
+model_final_dct_list.clear()                      
+
+
+
+# clear model_final_dct[] before populating 
+
+length = len (model_years_dct_list) 
+
+sum = 0
+
+ll = len(model_years_dct_list)
+
+for i in range (ll) :
+
+    sum  +=  len(model_years_dct_list[i])
+
+
+
+for i  in range (length):
+
+    k = len(model_years_dct_list[i])
+
+    tmp_dct.clear()
+
+    tmp_dct = model_years_dct_list[i].copy()
+
+    for j in range (k) :
+
+        maker = tmp_dct[j].get('Maker')
+
+        model = tmp_dct[j].get('Model')
+
+        year = tmp_dct[j].get('Year')                # List format ['2017']
+
+        s_year = str(year[0])
+
+        s_year.replace('[', '')
+
+        s_year.replace(']', '')
+
+        price = tmp_dct[j].get('New_Price')
+
+
+        # get the model URL for the most recent year
+
+        # convert to binary -> subtract one -> convert back to string
+
+        model_year_url = str(tmp_dct[j].get('Model-url'))
+
+
+        if  j == 0 :
+
+            print("j = 0 : ", maker, model, year, price, model_year_url)
+
+            model_final_dct_list.insert(0, get_maker_model_year_price_properties(maker, model, year, price, model_year_url).copy())
+
+            #tmp = get_maker_model_year_price_properties(maker, model, year,                    price, model_year_url)
+
+            #model_final_dct_list[0] = copy.deepcopy(tmp)
+
+            #model_final_dct_list.append(dict(get_maker_model_year_price_properties(maker, model, year, price, model_year_url)))
+
+
+            print("j = 0: model_final_dct_list length = ", len(model_final_dct_list))
+
+            print("j = 0: ", model_final_dct_list[0], "\n")
+
+        else :
+
+            print("j != 0 ", maker, model, s_year, price, model_year_url)
+
+            model_final_dct_list.append(get_maker_model_year_price_properties(maker, model, s_year, price, model_year_url).copy())
+
+            #model_final_dct_list.append(dict(get_maker_model_year_price_properties(maker, model, s_year, price, model_year_url)))
+
+            print("j != 0: model_final_dct_list length = ",len(model_final_dct_list))
+
+            print("j != 0: ", model_final_dct_list[-1], "\n")    # print correct dictionary
+
+
+print(model_final_dct_list)       # all entries have the same value = last append dictionary
+
+ ----------------------------
+
+
+get_maker_model_year_price_properties() returns a valid dictionary with correct data.
+
+Initializing model_final_dct_list[ ] is the problem.
+model_final_dct_list[ ] will have the right length but all entries have the same dictionary which is the last copy received from calling get_maker_model_year_price_properties()
+
+Thanks again for your input.
+Regards,
+
+Adam
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# input: maker/model/<year : URL> and 
+
+# output: maker/model/years/price/{properties dictionary}
+
+
+
+def get_maker_model_year_price_properties(maker, model, year, price, model_year_url):
+
+
+
+    prop.clear()                           # clear the dictionary
+
+
+
+    technology = []
+
+
+
+    entertainment = []
+
+
+
+    tmp_dct = {}
+
+
+
+    i = 0    
+
+
+
+    r = requests.get(model_year_url)
+
+
+
+    # create soup3 object for the top level HTML page (to search recursively
+
+
+
+    # for makers, models and Links)
+
+
+
+    soup3 = soup( r.content, 'html.parser')  
+
+
+
+    # (1-2) find out MPG and HorsePower
+
+
+
+    mpg = False
+
+
+
+    hp = False
+
+
+
+    for p  in soup3.find('div', {"class" : "css-1wbw7cx epomrkc1"}).find_all('div', {"class" : "stars"}):
+
+
+
+        parent = str(p.find_parent('div').text).strip()
+
+
+
+        #print("parent: ", parent)
+
+
+
+        if  "Combined Fuel Economy" in   parent :
+
+
+
+            prop['MPG'] = p.text
+
+
+
+            mpg = True
+
+
+
+        elif  "Horsepower"  in   parent :
+
+
+
+            prop['HP'] = p.text
+
+
+
+            hp = True
+
+
+
+        else :
+
+
+
+            break
+
+
+
+    if mpg == False :
+
+
+
+        prop['MPG'] = "N/A"
+
+
+
+    if hp == False :
+
+
+
+          prop['HP'] = "N/A"
+
+
+
+ 
+
+
+
+    # (3-4) find out Expert Rating and Consumer rating
+
+
+
+    i = 0
+
+
+
+    for p in soup3.find_all('div', {"class":"css-x9skgx-NumericRating e149jidm1"}) :
+
+
+
+        i = i + 1
+
+
+
+        if i == 1 :
+
+
+
+            if  p.text :
+
+
+
+                value = p.text.replace('\xa0', '')
+
+
+
+                prop['Expert-Rating'] = value
+
+
+
+            else :
+
+
+
+                prop['Expert-Rating'] = "N/A"
+
+
+
+        elif (i == 2<span style="font-size:10.5pt;font-family:"Courier New
+
+...
+
+[Message clipped]  View entire message
